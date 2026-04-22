@@ -1,4 +1,11 @@
 name: ecu_basic_test
+
+assertions:
+  - pattern: "[NORMAL]"
+    description: "正常フレームが NORMAL と判定されること"
+  - pattern: "[ABNORMAL]"
+    description: "異常フレームが ABNORMAL と判定されること"
+
 steps:
   # --- 正常系 ---
   - label: "正常フレーム送信（8バイト）"

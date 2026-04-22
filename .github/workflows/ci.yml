@@ -31,13 +31,13 @@ jobs:
         run: sudo bash run_poc.sh targets/ecu_basic
 
       - name: Check result (ecu_basic)
-        run: bash scripts/check_result.sh logs/ecu.log
+        run: bash scripts/check_result.sh logs/ecu.log targets/ecu_basic/scenario.yml
 
       - name: Run PoC (ecu_cpp / C++)
         run: sudo bash run_poc.sh targets/ecu_cpp
 
       - name: Check result (ecu_cpp)
-        run: bash scripts/check_result.sh logs/ecu.log
+        run: bash scripts/check_result.sh logs/ecu.log targets/ecu_cpp/scenario.yml
 
       - name: Upload logs
         if: always()
