@@ -11,6 +11,7 @@
 - [x] #5 ECU アプリ作成（ecu_app/ecu.py）
 - [x] #6 PoC 起動スクリプト作成（run_poc.sh）
 - [x] #7 README.md 作成
+- [x] #8 C++ ECU ターゲット追加（targets/ecu_cpp）
 
 ---
 
@@ -116,3 +117,18 @@ WSL2 のデフォルトカーネルには vcan モジュールが含まれてい
 - [x] セットアップ手順の記載
 - [x] 実行方法（`./run_poc.sh`）の記載
 - [x] ログ確認方法の記載
+
+---
+
+## #8 C++ ECU ターゲット追加（targets/ecu_cpp）
+
+**ステータス**: [ ] pending / [ ] in_progress / [x] completed
+
+C++ で実装した ECU アプリを `targets/ecu_cpp/` に追加し、CI でビルド・テストできるようにする。
+
+### タスク
+- [x] `targets/ecu_cpp/main.cpp` 作成（SocketCAN で vcan0 受信、NORMAL/ABNORMAL 判定）
+- [x] `targets/ecu_cpp/scenario.yml` 作成
+- [x] `run_poc.sh` を Python / バイナリ自動判別に対応
+- [x] `ci.yml` に `g++` ビルドステップと ecu_cpp テストステップを追加
+- [x] `.gitignore` にコンパイル済みバイナリ（`targets/*/app`）を追加

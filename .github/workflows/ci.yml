@@ -21,13 +21,22 @@ jobs:
           python3 -m venv .venv
           .venv/bin/pip install -r requirements.txt
 
+      - name: Build ecu_cpp
+        run: g++ -O2 -o targets/ecu_cpp/app targets/ecu_cpp/main.cpp
+
       - name: Setup vcan0
         run: sudo bash scripts/setup_vcan.sh
 
-      - name: Run PoC
+      - name: Run PoC (ecu_basic / Python)
         run: sudo bash run_poc.sh targets/ecu_basic
 
-      - name: Check result
+      - name: Check result (ecu_basic)
+        run: bash scripts/check_result.sh logs/ecu.log
+
+      - name: Run PoC (ecu_cpp / C++)
+        run: sudo bash run_poc.sh targets/ecu_cpp
+
+      - name: Check result (ecu_cpp)
         run: bash scripts/check_result.sh logs/ecu.log
 
       - name: Upload logs

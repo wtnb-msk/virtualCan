@@ -1,0 +1,11 @@
+name: ecu_cpp_test
+steps:
+  - label: "正常フレーム送信"
+    template: "123#0102030405060708"
+    count: 10
+    interval: 0.1
+
+  - label: "異常フレーム送信"
+    template: "123#FFFFFFFFFFFFFFFF"
+    count: 3
+    interval: 0.5

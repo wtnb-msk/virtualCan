@@ -5,12 +5,23 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TARGET="${1:-$SCRIPT_DIR/targets/ecu_basic}"
 TARGET="$(cd "$TARGET" && pwd)"
 
-APP="$TARGET/app.py"
 SCENARIO="$TARGET/scenario.yml"
 LOG_DIR="$SCRIPT_DIR/logs"
 ECU_LOG="$LOG_DIR/ecu.log"
 CANDUMP_LOG="$LOG_DIR/candump.log"
 VENV="$SCRIPT_DIR/.venv/bin/python3"
+
+# Python アプリ (app.py) またはコンパイル済みバイナリ (app) を自動判別
+if [ -f "$TARGET/app.py" ]; then
+    APP_TYPE="python"
+    APP="$TARGET/app.py"
+elif [ -f "$TARGET/app" ]; then
+    APP_TYPE="binary"
+    APP="$TARGET/app"
+else
+    APP_TYPE=""
+    APP=""
+fi
 
 ECU_PID=""
 CANDUMP_PID=""
@@ -32,8 +43,8 @@ trap cleanup EXIT
 mkdir -p "$LOG_DIR"
 
 # 引数バリデーション
-if [ ! -f "$APP" ]; then
-    echo "[run_poc] ERROR: app.py not found in target: $TARGET"
+if [ -z "$APP" ]; then
+    echo "[run_poc] ERROR: app.py or app binary not found in target: $TARGET"
     exit 1
 fi
 if [ ! -f "$SCENARIO" ]; then
@@ -48,12 +59,16 @@ echo "[run_poc] Setting up vcan0..."
 bash "$SCRIPT_DIR/scripts/setup_vcan.sh" || { echo "[run_poc] ERROR: vcan setup failed"; exit 1; }
 
 # --- 2. ECU アプリ起動 ---
-echo "[run_poc] Starting ECU app..."
-if [ ! -f "$VENV" ]; then
-    echo "[run_poc] ERROR: .venv not found. Run: python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt"
-    exit 2
+echo "[run_poc] Starting ECU app ($APP_TYPE)..."
+if [ "$APP_TYPE" = "python" ]; then
+    if [ ! -f "$VENV" ]; then
+        echo "[run_poc] ERROR: .venv not found. Run: python3 -m venv .venv && pip install -r requirements.txt"
+        exit 2
+    fi
+    "$VENV" "$APP" > "$ECU_LOG" 2>&1 &
+else
+    "$APP" > "$ECU_LOG" 2>&1 &
 fi
-"$VENV" "$APP" > "$ECU_LOG" 2>&1 &
 ECU_PID=$!
 sleep 0.5
 if ! kill -0 "$ECU_PID" 2>/dev/null; then
