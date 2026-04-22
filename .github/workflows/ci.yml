@@ -1,0 +1,36 @@
+name: virtualCan PoC CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  poc:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: sudo apt-get install -y can-utils python3-venv python3-dev
+
+      - name: Setup Python venv
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install -r requirements.txt
+
+      - name: Setup vcan0
+        run: sudo bash scripts/setup_vcan.sh
+
+      - name: Run PoC
+        run: sudo bash run_poc.sh targets/ecu_basic
+
+      - name: Check result
+        run: bash scripts/check_result.sh logs/ecu.log
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: poc-logs
+          path: logs/

@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__serena__initial_instructions",
+      "mcp__serena__check_onboarding_performed",
+      "mcp__serena__read_memory",
+      "Bash(chmod +x *)",
+      "mcp__serena__activate_project",
+      "mcp__serena__get_symbols_overview",
+      "Bash(shellcheck scripts/check_result.sh)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "serena"
+  ]
+}
