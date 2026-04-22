@@ -14,7 +14,10 @@ static void handle_signal(int) {
     running = false;
 }
 
+static const canid_t TARGET_ID = 0x123;
+
 static bool is_abnormal(const struct can_frame &frame) {
+    if (frame.can_dlc == 0) return false;
     for (int i = 0; i < frame.can_dlc; ++i) {
         if (frame.data[i] != 0xFF) return false;
     }
@@ -53,6 +56,8 @@ int main() {
         struct can_frame frame{};
         ssize_t nbytes = read(sock, &frame, sizeof(frame));
         if (nbytes <= 0) continue;
+
+        if ((frame.can_id & CAN_EFF_MASK) != TARGET_ID) continue;
 
         char hex[17] = {};
         for (int i = 0; i < frame.can_dlc; ++i)

@@ -8,6 +8,8 @@ TARGET_ID = 0x123
 
 
 def judge(msg: can.Message) -> str:
+    if len(msg.data) == 0:
+        return "NORMAL"
     if all(b == 0xFF for b in msg.data):
         return "ABNORMAL"
     return "NORMAL"
