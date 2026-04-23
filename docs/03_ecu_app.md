@@ -2,29 +2,40 @@
 
 ## 目的
 
-vcan0 を受信し、正常/異常を判別してログ出力する最小 ECU 相当アプリ。
+vcan0 を受信し、正常/異常を判別してログ出力する ECU 相当アプリ。
 
-## 実装
+## 配置ルール
 
-- 言語: Python 3
-- ライブラリ: `python-can`
-- 実行方式: プロセス（Docker 不使用）
+```
+targets/<name>/
+├── main.cpp     # C++ 実装（ビルド成果物: app）
+└── scenario.yml
+```
+
+`run_poc.sh` は `app` バイナリを起動する。
+
+---
+
+## C++ 実装（ecu_cpp）
+
+- API: Linux SocketCAN（`linux/can.h`、`linux/can/raw.h`）
+- ビルド: `g++ -O2 -o targets/ecu_cpp/app targets/ecu_cpp/main.cpp`
+- 実行: `targets/ecu_cpp/app`
+
+---
 
 ## 動作仕様
 
 | 受信データ | 判定 | ログ出力例 |
 |-----------|------|-----------|
-| ID=0x123, Data=01 02 03 04 05 06 07 08 | 正常 | `[NORMAL] ID=0x123 Data=0102030405060708` |
-| ID=0x123, Data=FF FF FF FF FF FF FF FF | 異常 | `[ABNORMAL] ID=0x123 Data=ffffffffffffffff` |
-| その他 | 不明 | `[UNKNOWN] ID=0x??? Data=...` |
+| Data の全バイトが `0xFF`（DLC≥1） | 異常 | `[ABNORMAL] ID=0x123 Data=ffffffffffffffff` |
+| Data が空（DLC=0） | 正常 | `[NORMAL] ID=0x123 Data=` |
+| それ以外 | 正常 | `[NORMAL] ID=0x123 Data=0102030405060708` |
 
-## 正常/異常の判別ロジック（PoC版）
+- ID フィルタ: `TARGET_ID=0x123` のフレームのみ処理し、他の ID は無視する
+- ログは標準出力へ出力し、`run_poc.sh` が `logs/ecu.log` にリダイレクトする
 
-- Data のすべてのバイトが `0xFF` → 異常
-- それ以外 → 正常
+## 終了
 
-## 起動・終了
-
-- 起動: `python3 ecu_app/ecu.py`
-- 終了: Ctrl+C または `run_poc.sh` からの SIGTERM
-- vcan0 が存在しない場合はエラーメッセージを出力して終了コード 1
+- SIGTERM または SIGINT を受け取って正常終了
+- `run_poc.sh` の trap EXIT によって自動終了される

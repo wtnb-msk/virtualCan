@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## プロジェクト概要
 
 仮想 CAN 通信を用いた検証 PoC。Raspberry Pi や実機を使わず、Linux 仮想環境のみで完結させる。
-将来的に GitHub Actions (Ubuntu runner) で CI 化することを前提とする。
+GitHub Actions (ubuntu-latest) による CI 対応済み。
 
 ## 全体アーキテクチャ
 
@@ -17,7 +17,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │  (cansend)       (SocketCAN)   (受信・判定) │
 │                    ↑                │
 │              [CAN観測]              │
-│              (candump/Python)       │
+│              (candump)              │
 └─────────────────────────────────────┘
 ```
 
@@ -25,16 +25,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | モジュール | 役割 | 実装 |
 |-----------|------|------|
-| vcan セットアップ | 仮想CANバス作成 | シェルスクリプト |
-| シナリオ実行 | テスト治具。scenario.yml を読んで cansend で送信 | run_scenario.sh + Python |
-| 被検証App | 受信・ログ出力・正常/異常判別 | Python (python-can) |
-| CAN観測 | candump または Python でバス監視・判定 | candump / Python |
-| 起動スクリプト | 全体をワンコマンドで起動 | `./run_poc.sh [target]` |
+| vcan セットアップ | 仮想CANバス作成 | `scripts/setup_vcan.sh` |
+| シナリオ実行 | テスト治具。`scenario.yml` を読んで cansend で送信 | `scripts/run_scenario.sh` |
+| 被検証App | 受信・ログ出力・正常/異常判別 | Python (`app.py`) または C++ (`main.cpp` → `app`) |
+| CAN観測 | candump でバス監視 | candump |
+| 起動スクリプト | 全体をワンコマンドで起動 | `run_poc.sh` |
+| CI | 全ターゲットをビルド・テスト | `.github/workflows/ci.yml` |
 
 ## 環境制約
 
-- **現状**: WSL2 環境。vcan モジュール未搭載のためカスタムカーネルビルドが必要
-- **将来 CI**: GitHub Actions の `ubuntu-latest` ランナーは vcan 標準搭載
+- **現状**: WSL2 環境。vcan モジュール有効化のためカスタムカーネルビルド済み
+- **CI**: GitHub Actions の `ubuntu-latest` ランナーは `linux-modules-extra` をインストールで対応
+
+## ターゲット構成
+
+```
+targets/<name>/
+├── main.cpp     # C++ ECU（ビルドして app バイナリを生成）
+└── scenario.yml # テストシナリオ定義（assertions セクション含む）
+```
 
 ## 成果物一覧
 
@@ -42,52 +51,49 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 virtualCan/
 ├── CLAUDE.md
 ├── README.md
-├── run_poc.sh              # ワンコマンド起動（引数でターゲット指定）
-├── requirements.txt        # Python 依存パッケージ
-├── docs/                   # 各モジュール仕様
+├── run_poc.sh
+├── requirements.txt
+├── .github/
+│   └── workflows/ci.yml
+├── docs/
+│   ├── 01_vcan_setup.md
+│   ├── 02_can_input.md
+│   ├── 03_ecu_app.md
+│   ├── 04_can_observe.md
+│   ├── 05_run_poc.md
+│   ├── 06_dependencies.md
+│   ├── 07_ci.md
+│   └── tickets.md
 ├── scripts/
-│   ├── setup_vcan.sh       # vcan0 セットアップ
-│   └── run_scenario.sh     # シナリオYAMLを読んで cansend 実行
-└── targets/                # 被検証App + シナリオのルート
-    └── ecu_basic/          # ターゲット例
-        ├── app.py          # 被検証App本体
-        └── scenario.yml    # テストシナリオ定義
-```
-
-## ターゲットの追加方法
-
-新しい被検証Appをテストする場合は `targets/<name>/` ディレクトリを作成し、
-`app.py`（被検証App）と `scenario.yml`（テストシナリオ）を配置する。
-
-```bash
-mkdir targets/my_ecu
-cp targets/ecu_basic/app.py targets/my_ecu/app.py      # ベースをコピーして改変
-cp targets/ecu_basic/scenario.yml targets/my_ecu/scenario.yml
+│   ├── setup_vcan.sh
+│   ├── run_scenario.sh
+│   └── check_result.sh
+└── targets/
+    └── ecu_cpp/         # C++ ECU（参照実装）
+        ├── main.cpp
+        └── scenario.yml
 ```
 
 ## 主要コマンド
 
 ```bash
-# vcan0 セットアップ（要 sudo + カスタムカーネル）
-./scripts/setup_vcan.sh
+# vcan0 セットアップ（要 sudo）
+sudo bash scripts/setup_vcan.sh
 
-# PoC 全体起動（デフォルト: targets/ecu_basic）
-sudo bash run_poc.sh
+# C++ ECU をビルドして起動
+g++ -O2 -o targets/ecu_cpp/app targets/ecu_cpp/main.cpp
+sudo bash run_poc.sh targets/ecu_cpp
 
-# ターゲットを指定して起動
-sudo bash run_poc.sh targets/my_ecu
-
-# 手動での CAN 送受信確認
-candump vcan0 &
-cansend vcan0 123#0102030405060708
+# CI 判定スクリプト単体実行
+bash scripts/check_result.sh logs/ecu.log targets/ecu_cpp/scenario.yml
 ```
 
 ## 実装方針
 
 - 実機・CI 性能・セキュリティは考慮しない
-- 手動操作に依存しない構成（将来の CI 化のため）
+- 手動操作に依存しない構成（CI 化のため）
 - 被検証App はプロセス実行（Docker 不要）
-- シナリオと被検証App は同じ `targets/<name>/` に格納する
+- ECU アプリは C++ で実装する
 
 ## チケット管理ルール
 

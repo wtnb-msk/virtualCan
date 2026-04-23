@@ -1,6 +1,6 @@
 # 依存パッケージ仕様
 
-## システムパッケージ
+## WSL2 環境
 
 ```bash
 sudo apt update
@@ -8,62 +8,58 @@ sudo apt install -y \
   can-utils \
   python3-venv \
   python3-dev \
-  python3-pip \
   build-essential
 ```
 
-| パッケージ | 用途 | バージョン（Ubuntu 24.04） |
-|-----------|------|--------------------------|
-| `can-utils` | cansend / candump | 2023.03-1 |
-| `python3-venv` | Python 仮想環境 | - |
-| `python3-dev` | pip wheel ビルド用ヘッダ | - |
+| パッケージ | 用途 |
+|-----------|------|
+| `can-utils` | cansend / candump |
+| `python3-venv` | Python 仮想環境 |
+| `python3-dev` | pip wheel ビルド用ヘッダ |
+| `build-essential` | g++（C++ ターゲットのビルド） |
+
+---
+
+## GitHub Actions 環境
+
+```yaml
+sudo apt-get install -y \
+  can-utils python3-venv python3-dev \
+  linux-modules-extra-$(uname -r)
+```
+
+`linux-modules-extra-$(uname -r)` は ubuntu-latest ランナーで vcan モジュールを有効にするために必要。
 
 ---
 
 ## Python 環境（venv）
 
-Ubuntu 24.04 では `externally-managed-environment` 制約があるため、**venv 必須**。
+Ubuntu 24.04 では `externally-managed-environment` 制約があるため venv 必須。
 
 ```bash
-cd /home/scsk-watanabe/practice/virtualCan
-
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
----
-
 ## requirements.txt
 
 ```
 python-can==4.6.1
+pyyaml==6.0.3
 ```
 
-> `python-can` の socketcan バックエンドは追加パッケージ不要。
-> vcan0（SocketCAN）へのアクセスに `interface="socketcan"` を使用する。
+| パッケージ | 用途 |
+|-----------|------|
+| `python-can` | Python ECU アプリの SocketCAN バインディング |
+| `pyyaml` | `run_scenario.sh` 内での scenario.yml パース |
 
 ---
 
-## python-can の最小使用例
+## C++ ターゲットのビルド
 
-```python
-import can
-
-with can.Bus(channel="vcan0", interface="socketcan") as bus:
-    for msg in bus:
-        print(f"ID=0x{msg.arbitration_id:03X} Data={msg.data.hex()}")
-```
-
----
-
-## バージョン確認コマンド
+追加ライブラリ不要。Linux カーネルヘッダ（`linux/can.h`）のみ使用する。
 
 ```bash
-# can-utils
-dpkg -l can-utils
-
-# python-can
-source .venv/bin/activate
-python3 -c "import can; print(can.__version__)"
+g++ -O2 -o targets/ecu_cpp/app targets/ecu_cpp/main.cpp
 ```

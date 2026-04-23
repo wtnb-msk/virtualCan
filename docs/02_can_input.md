@@ -2,38 +2,54 @@
 
 ## 目的
 
-テスト治具として vcan0 に CAN フレームを送信する。ECU として常駐させる必要はない。
+テスト治具として vcan0 に CAN フレームを送信する。
 
-## テンプレート形式
+## シナリオ定義ファイル（scenario.yml）
 
-テキストファイル（`.can`）に1行1フレームの形式で記述する。
+各ターゲットの `targets/<name>/scenario.yml` にテスト手順を定義する。
+
+```yaml
+name: ecu_basic_test
+steps:
+  - label: "正常フレーム送信"
+    template: "123#0102030405060708"
+    count: 10
+    interval: 0.1
+
+  - label: "異常フレーム送信"
+    template: "123#FFFFFFFFFFFFFFFF"
+    count: 3
+    interval: 0.5
+```
+
+### フィールド仕様
+
+| フィールド | 型 | 説明 |
+|-----------|-----|------|
+| `name` | string | シナリオ名（ログ識別用） |
+| `steps[].label` | string | ステップ名（ログ出力用） |
+| `steps[].template` | string | `cansend` 形式（`<ID>#<DATA_HEX>`） |
+| `steps[].count` | int | 送信回数 |
+| `steps[].interval` | float | 送信間隔（秒） |
+
+### template の書式
 
 ```
-# 書式： <CAN_ID>#<DATA_HEX>  （can-utils cansend 形式）
-123#0102030405060708
+<CAN_ID>#<DATA_HEX>
+
+例:
+  123#0102030405060708    # 標準フレーム、8バイト
+  123#FF                  # 標準フレーム、1バイト
+  123#                    # データなし（DLC=0）
+  1FFFFFFF#DEADBEEF       # 拡張フレームID（29bit）
 ```
 
-## 正常テンプレート（`templates/normal.can`）
+## 実行スクリプト（scripts/run_scenario.sh）
 
-- CAN ID: `0x123`
-- Data: `01 02 03 04 05 06 07 08`
-- 送信周期: 100ms
-- 送信回数: 10回（PoC では固定）
+`scenario.yml` を読み込み、各ステップを順番に `cansend` で実行する。
 
-## 異常テンプレート（`templates/abnormal.can`）
+```bash
+bash scripts/run_scenario.sh targets/ecu_basic/scenario.yml
+```
 
-- CAN ID: `0x123`
-- Data: `FF FF FF FF FF FF FF FF`
-- 送信方式: 単発 or 低頻度（500ms間隔で3回）
-
-## スクリプト仕様
-
-### send_normal.sh
-
-- テンプレートファイルを読み込み、100ms 間隔で繰り返し送信
-- 引数なしで実行可能
-- 終了後にプロセス終了
-
-### send_abnormal.sh
-
-- 異常テンプレートを 500ms 間隔で3回送信して終了
+内部では Python（pyyaml）で YAML をパースし、`subprocess.run(["cansend", ...])` を呼び出す。

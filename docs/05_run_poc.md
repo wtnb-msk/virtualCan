@@ -7,20 +7,24 @@ PoC 全体をワンコマンドで起動・実行・終了する。
 ## 使い方
 
 ```bash
-./run_poc.sh
+# デフォルトターゲット（targets/ecu_basic）
+sudo bash run_poc.sh
+
+# ターゲットを指定
+sudo bash run_poc.sh targets/ecu_cpp
 ```
 
 ## 実行シーケンス
 
 ```
-1. vcan0 セットアップ        (scripts/setup_vcan.sh)
-2. ECUアプリ起動             (python3 ecu_app/ecu.py &)
-3. candump 起動              (candump vcan0 > logs/candump.log &)
-4. 正常テンプレート送信      (scripts/send_normal.sh)
-5. 異常テンプレート送信      (scripts/send_abnormal.sh)
-6. 待機（全送信完了まで）
-7. ECUアプリ・candump 終了  (kill)
-8. ログ出力・結果表示
+1. vcan0 セットアップ          (scripts/setup_vcan.sh)
+2. ECUアプリ起動（バックグラウンド）
+     app.py が存在 → Python で起動
+     app バイナリが存在 → バイナリを直接起動
+3. candump 起動（バックグラウンド） → logs/candump.log
+4. シナリオ実行                (scripts/run_scenario.sh <target>/scenario.yml)
+5. trap EXIT → ECUアプリ・candump を kill
+6. ログ内容を標準出力へ表示
 ```
 
 ## 出力ファイル
@@ -34,6 +38,6 @@ PoC 全体をワンコマンドで起動・実行・終了する。
 
 | コード | 意味 |
 |--------|------|
-| 0 | 正常完了（全フレーム送受信確認済み） |
-| 1 | vcan0 セットアップ失敗 |
-| 2 | ECUアプリ起動失敗 |
+| 0 | 正常完了 |
+| 1 | vcan0 セットアップ失敗 / アプリが見つからない |
+| 2 | ECUアプリ起動失敗（.venv 未作成 等） |

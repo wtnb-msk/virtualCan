@@ -27,13 +27,7 @@ jobs:
       - name: Setup vcan0
         run: sudo bash scripts/setup_vcan.sh
 
-      - name: Run PoC (ecu_basic / Python)
-        run: sudo bash run_poc.sh targets/ecu_basic
-
-      - name: Check result (ecu_basic)
-        run: bash scripts/check_result.sh logs/ecu.log targets/ecu_basic/scenario.yml
-
-      - name: Run PoC (ecu_cpp / C++)
+      - name: Run PoC (ecu_cpp)
         run: sudo bash run_poc.sh targets/ecu_cpp
 
       - name: Check result (ecu_cpp)
