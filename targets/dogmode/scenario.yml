@@ -1,0 +1,21 @@
+name: dog_mode_battery_lifecycle
+
+assertions:
+  - pattern: "[VCU] State: STANDBY -> ACTIVE"
+    description: "Dog Modeが正常にアクティブ化 (TR-001)"
+  - pattern: "[BMS] Battery LOW"
+    description: "BMSがバッテリー低下(20%)を検知"
+  - pattern: "[VCU] State: ACTIVE -> LOW_BATTERY"
+    description: "VCUがLOW_BATTERY状態に遷移 (TR-002)"
+  - pattern: "[BMS] Battery CRITICAL"
+    description: "BMSがバッテリー危険(10%)を検知"
+  - pattern: "[VCU] State: LOW_BATTERY -> SAFE_STOP"
+    description: "VCUがSafe Stop手順を開始 (TR-005)"
+  - pattern: "[VCU] State: SAFE_STOP -> TERMINATED"
+    description: "VCUがTERMINATED状態に到達 (TR-006)"
+
+steps:
+  - label: "Activate Dog Mode (target=22C)"
+    template: "100#0116000000000000"
+    count: 1
+    interval: 0.5

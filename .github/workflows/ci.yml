@@ -24,6 +24,9 @@ jobs:
       - name: Build ecu_cpp
         run: g++ -O2 -o targets/ecu_cpp/app targets/ecu_cpp/main.cpp
 
+      - name: Build dogmode
+        run: g++ -O2 -pthread -o targets/dogmode/app targets/dogmode/src/main.cpp targets/dogmode/src/state_machine.cpp targets/dogmode/src/bms_ecu.cpp targets/dogmode/src/vcu.cpp
+
       - name: Setup vcan0
         run: sudo bash scripts/setup_vcan.sh
 
@@ -32,6 +35,12 @@ jobs:
 
       - name: Check result (ecu_cpp)
         run: bash scripts/check_result.sh logs/ecu.log targets/ecu_cpp/scenario.yml
+
+      - name: Run PoC (dogmode)
+        run: sudo bash run_poc.sh targets/dogmode
+
+      - name: Check result (dogmode)
+        run: bash scripts/check_result.sh logs/ecu.log targets/dogmode/scenario.yml
 
       - name: Upload logs
         if: always()

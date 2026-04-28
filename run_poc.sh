@@ -27,6 +27,7 @@ ECU_PID=""
 CANDUMP_PID=""
 
 cleanup() {
+    set +e
     echo ""
     echo "[run_poc] Stopping processes..."
     if [ -n "$ECU_PID" ]; then kill "$ECU_PID" 2>/dev/null; wait "$ECU_PID" 2>/dev/null; fi
@@ -37,6 +38,7 @@ cleanup() {
     echo ""
     echo "=== ECU log ==="
     cat "$ECU_LOG" 2>/dev/null || echo "(empty)"
+    set -e
 }
 trap cleanup EXIT
 
@@ -87,5 +89,16 @@ echo "[run_poc] candump started (PID=$CANDUMP_PID)"
 # --- 4. シナリオ実行 ---
 echo "[run_poc] Running scenario..."
 bash "$SCRIPT_DIR/scripts/run_scenario.sh" "$SCENARIO"
+
+echo "[run_poc] Scenario done. Waiting for ECU app to finish (timeout=60s)..."
+WAIT_SEC=0
+while kill -0 "$ECU_PID" 2>/dev/null; do
+    sleep 1
+    WAIT_SEC=$((WAIT_SEC + 1))
+    if [ "$WAIT_SEC" -ge 60 ]; then
+        echo "[run_poc] WARN: timeout reached, stopping ECU app."
+        break
+    fi
+done
 
 echo "[run_poc] All steps done."
